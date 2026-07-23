@@ -1,6 +1,7 @@
 import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, GLib
+import psutil
 
 
 class HyprStatsWindow(Gtk.Window):
@@ -14,8 +15,18 @@ class HyprStatsWindow(Gtk.Window):
         self.fixed = Gtk.Fixed()
         self.add(self.fixed)
 
-        self.label = Gtk.Label(label="HyprStats")
-        self.fixed.put(self.label, 120, 80)
+        self.ram_label = Gtk.Label(label="RAM: loading...")
+        self.fixed.put(self.ram_label, 20, 20)
+
+        GLib.timeout_add_seconds(2, self.update_stats)
+
+    def update_stats(self):
+        mem = psutil.virtual_memory()
+        used_gb = mem.used / 1024**3
+        total_gb = mem.total / 1024**3
+        percent = mem.percent
+        self.ram_label.set_text(f"RAM: {used_gb:.2f} GB / {total_gb:.2f} GB ({percent}%)")
+        return True
 
 
 if __name__ == "__main__":
