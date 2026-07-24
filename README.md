@@ -1,6 +1,6 @@
 <div align="center">
 
-# HyprStats
+# HyprStats ✨
 
 Custom Linux desktop system monitor widget for Hyprland on Arch Linux.
 
