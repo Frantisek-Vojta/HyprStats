@@ -12,7 +12,7 @@ Custom Linux desktop system monitor widget for Hyprland on Arch Linux.
 ![Hyprland](https://img.shields.io/badge/Hyprland-58E1FF?style=flat&logo=hyprland&logoColor=black)
 
 
-![HyprStats screenshot](assets/image.png)
+![HyprStats screenshot](assets/image.png) 
 
 *more screenshots coming soon.*
 </div>
