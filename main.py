@@ -91,7 +91,6 @@ class HyprStatsWindow(Gtk.Window):
         self.clock_label.set_halign(Gtk.Align.START)
         vbox.pack_start(self.clock_label, False, False, 0)
 
-        # Jednotná mezera 45px mezi VŠEMI sloupci v mřížce
         self.grid = Gtk.Grid()
         self.grid.set_column_spacing(45)
         self.grid.set_row_spacing(8)
