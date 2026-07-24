@@ -12,7 +12,7 @@ Custom Linux desktop system monitor widget for Hyprland on Arch Linux.
 ![Hyprland](https://img.shields.io/badge/Hyprland-58E1FF?style=flat&logo=hyprland&logoColor=black)
 
 
-![HyprStats screenshot](assets/image.png) 
+![HyprStats screenshot](assets/image-copy.png) 
 
 *more screenshots coming soon.*
 </div>
@@ -21,11 +21,10 @@ Custom Linux desktop system monitor widget for Hyprland on Arch Linux.
 
 ## Features
 
-- Real-time RAM, CPU, GPU, and DISK usage monitoring
+- Real-time RAM, CPU, GPU, NET speed and DISK usage monitoring
 - Live CPU and GPU temperature readouts
 - Transparent purple-themed UI with GTK3 CSS styling
-- High-load notifications via notify-send
-- Embedded Font Awesome icons rendered with cairosvg
+- Cool icons
 
 ## Status
 
@@ -33,7 +32,7 @@ This project is in early development.
 
 <div align="center">
 
-![50%](https://progress-bar.xyz/18)
+![50%](https://progress-bar.xyz/23)
 
 </div>
 
