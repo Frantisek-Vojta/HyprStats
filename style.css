@@ -9,6 +9,7 @@ window {
 
 label {
     padding: 4px 0;
+    transition: color 0.3s ease, opacity 0.3s ease;
 }
 
 #clock {
@@ -22,4 +23,4 @@ label {
 #cpu { color: #c084fc; }
 #gpu { color: #d8b4fe; }
 #disk { color: #e2ccff; }
-#temp { color: #f0abfc; }
+#network { color: #c084fc; }

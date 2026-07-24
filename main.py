@@ -145,8 +145,7 @@ class HyprStatsWindow(Gtk.Window):
 
         self.prev_net = psutil.net_io_counters()
         self.prev_net_time = time.time()
-        self.update_stats()
-        GLib.timeout_add_seconds(1, self.update_stats)
+        GLib.timeout_add_seconds(2, self.update_stats)
 
     def update_stats(self):
         now = __import__("datetime").datetime.now()
