@@ -98,6 +98,12 @@ class HyprStatsWindow(Gtk.Window):
         self.clock_label.set_halign(Gtk.Align.START)
         vbox.pack_start(self.clock_label, False, False, 0)
 
+        self.date_label = Gtk.Label(label="")
+        self.date_label.set_name("date")
+        self.date_label.set_halign(Gtk.Align.START)
+        vbox.pack_start(self.date_label, False, False, 0)
+
+
         self.grid = Gtk.Grid()
         self.grid.set_column_spacing(45)
         self.grid.set_row_spacing(8)
@@ -145,11 +151,12 @@ class HyprStatsWindow(Gtk.Window):
 
         self.prev_net = psutil.net_io_counters()
         self.prev_net_time = time.time()
-        GLib.timeout_add_seconds(2, self.update_stats)
+        GLib.timeout_add_seconds(1, self.update_stats)
 
     def update_stats(self):
         now = __import__("datetime").datetime.now()
         self.clock_label.set_text(now.strftime("%H:%M:%S"))
+        self.date_label.set_text(now.strftime("%A - %d/%m/%Y"))
 
         mem = psutil.virtual_memory()
         used_gb = mem.used / 1024**3

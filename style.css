@@ -19,6 +19,14 @@ label {
     text-shadow: 0 0 15px rgba(192, 132, 252, 0.5);
 }
 
+#date {
+    font-size: 18px;
+    color: #d8b4fe;
+    text-shadow: 0 0 8px rgba(216, 180, 254, 0.3);
+    margin-top: -20px;
+    margin-bottom: 20px;
+}
+
 #ram { color: #a78bfa; }
 #cpu { color: #c084fc; }
 #gpu { color: #d8b4fe; }
