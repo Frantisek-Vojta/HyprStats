@@ -14,8 +14,6 @@ Custom Linux desktop system monitor widget for Hyprland on Arch Linux.
 
 ![HyprStats demo](assets/demo.gif)
 
-*more screenshots coming soon.*
-
 </div>
 
 ---
@@ -91,6 +89,13 @@ Run the widget manually:
 ```bash
 python main.py
 ```
+---
+
+## Screenshots
+#### old version:
+![HyprStats screenshot](assets/image.png)
+
+*more screenshots coming soon.*
 
 ## Contributing
 
