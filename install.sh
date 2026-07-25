@@ -34,25 +34,80 @@ if [ -f "$REPO_DIR/requirements.txt" ]; then
     fi
 fi
 
-# 3. Patch Mewline status bar if installed
+# 3. Patch the live Mewline status bar in-place (no bundled copy needed)
 if [ -f "$MEWLINE_TARGET" ]; then
     echo -e "${BLUE}--> Mewline detected at $MEWLINE_TARGET.${NC}"
 
-    if [ ! -f "$REPO_DIR/status_bar.py" ]; then
-        echo -e "${RED}[✗] status_bar.py not found in repo, cannot patch Mewline.${NC}"
-        echo -e "${YELLOW}    HyprStats was still installed to $INSTALL_DIR — run it manually with:${NC}"
-        echo -e "${YELLOW}    python3 $INSTALL_DIR/main.py${NC}"
+    if grep -q "HyprStatsButton" "$MEWLINE_TARGET"; then
+        echo -e "${YELLOW}[!] Mewline status bar already patched, skipping.${NC}"
     else
-        # Create a backup of the original status_bar.py if it doesn't exist yet
         if [ ! -f "${MEWLINE_TARGET}.bak" ]; then
             echo -e "${BLUE}--> Creating backup of original status_bar.py...${NC}"
             sudo cp "$MEWLINE_TARGET" "${MEWLINE_TARGET}.bak"
-        else
-            echo -e "${YELLOW}[!] Backup already exists at ${MEWLINE_TARGET}.bak, skipping backup.${NC}"
         fi
 
-        echo -e "${BLUE}--> Applying HyprStats patch to Mewline status bar...${NC}"
-        sudo cp "$REPO_DIR/status_bar.py" "$MEWLINE_TARGET"
+        echo -e "${BLUE}--> Injecting HyprStats button into Mewline status bar...${NC}"
+        sudo python3 - "$MEWLINE_TARGET" <<'PYEOF'
+import sys
+
+path = sys.argv[1]
+with open(path, "r") as f:
+    src = f.read()
+
+if "HyprStatsButton" in src:
+    sys.exit(0)
+
+# 1. add imports right after the original cairo import
+imports_anchor = "import cairo\n"
+extra_imports = (
+    "import os\n"
+    "import subprocess\n"
+    "import cairo\n"
+    "from fabric.widgets.button import Button\n"
+)
+src = src.replace(imports_anchor, extra_imports, 1)
+
+# 2. add the launcher function + button class right before StatusBarBase
+class_anchor = "class StatusBarBase:"
+injected = '''HYPRSTATS_PATH = os.path.expanduser("~/.config/hyprstats/main.py")
+
+
+def launch_hyprstats(*_args):
+    """Launch the HyprStats widget as a detached process."""
+    if not os.path.exists(HYPRSTATS_PATH):
+        logger.warning(f"HyprStats not found at {HYPRSTATS_PATH}")
+        return
+    try:
+        subprocess.Popen(["python3", HYPRSTATS_PATH], start_new_session=True)
+    except Exception as e:
+        logger.error(f"Failed to launch HyprStats: {e}")
+
+
+class HyprStatsButton(Button):
+    """Status bar button that opens the HyprStats widget."""
+
+    def __init__(self, **kwargs):
+        super().__init__(
+            name="hyprstats-button",
+            label="\uf2db",
+            tooltip_text="HyprStats",
+            on_clicked=launch_hyprstats,
+            **kwargs,
+        )
+
+
+''' + class_anchor
+src = src.replace(class_anchor, injected, 1)
+
+# 3. add the button into the end_children list, right before PowerButton()
+button_anchor = "                    PowerButton(),"
+src = src.replace(button_anchor, "                    HyprStatsButton(),\n" + button_anchor, 1)
+
+with open(path, "w") as f:
+    f.write(src)
+
+print("patched")
+PYEOF
         echo -e "${GREEN}[✓] Mewline patched successfully.${NC}"
     fi
 else
