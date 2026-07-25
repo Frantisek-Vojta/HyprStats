@@ -14,6 +14,27 @@ REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 INSTALL_DIR="$HOME/.config/hyprstats"
 MEWLINE_TARGET="/opt/mewline/src/mewline/widgets/status_bar.py"
 
+# --restore: put back the original, unpatched Mewline status bar and exit
+if [ "$1" = "--restore" ] || [ "$1" = "-r" ]; then
+    echo -e "${BLUE}==> Restoring original Mewline status bar...${NC}"
+    if [ -f "${MEWLINE_TARGET}.bak" ]; then
+        sudo cp "${MEWLINE_TARGET}.bak" "$MEWLINE_TARGET"
+        echo -e "${GREEN}[✓] Original status_bar.py restored from backup.${NC}"
+
+        if pgrep -x "mewline" > /dev/null; then
+            echo -e "${BLUE}--> Restarting Mewline...${NC}"
+            pkill mewline || true
+            sleep 0.5
+            hyprctl dispatch exec mewline > /dev/null 2>&1 &
+            echo -e "${GREEN}[✓] Mewline restarted successfully.${NC}"
+        fi
+    else
+        echo -e "${RED}[✗] No backup found at ${MEWLINE_TARGET}.bak — nothing to restore.${NC}"
+        exit 1
+    fi
+    exit 0
+fi
+
 echo -e "${BLUE}==> Installing HyprStats...${NC}"
 
 # 1. Deploy project files to ~/.config/hyprstats
@@ -38,24 +59,24 @@ fi
 if [ -f "$MEWLINE_TARGET" ]; then
     echo -e "${BLUE}--> Mewline detected at $MEWLINE_TARGET.${NC}"
 
-    if grep -q "HyprStatsButton" "$MEWLINE_TARGET"; then
-        echo -e "${YELLOW}[!] Mewline status bar already patched, skipping.${NC}"
-    else
-        if [ ! -f "${MEWLINE_TARGET}.bak" ]; then
-            echo -e "${BLUE}--> Creating backup of original status_bar.py...${NC}"
-            sudo cp "$MEWLINE_TARGET" "${MEWLINE_TARGET}.bak"
-        fi
+    # Keep a pristine backup of the original, untouched file
+    if [ ! -f "${MEWLINE_TARGET}.bak" ]; then
+        echo -e "${BLUE}--> Creating backup of original status_bar.py...${NC}"
+        sudo cp "$MEWLINE_TARGET" "${MEWLINE_TARGET}.bak"
+    fi
 
-        echo -e "${BLUE}--> Injecting HyprStats button into Mewline status bar...${NC}"
-        sudo python3 - "$MEWLINE_TARGET" <<'PYEOF'
+    # Always re-patch from the pristine backup, so re-running this script
+    # after updating HyprStats applies the latest button behavior/position.
+    echo -e "${BLUE}--> Restoring pristine status_bar.py before patching...${NC}"
+    sudo cp "${MEWLINE_TARGET}.bak" "$MEWLINE_TARGET"
+
+    echo -e "${BLUE}--> Injecting HyprStats button into Mewline status bar...${NC}"
+    sudo python3 - "$MEWLINE_TARGET" <<'PYEOF'
 import sys
 
 path = sys.argv[1]
 with open(path, "r") as f:
     src = f.read()
-
-if "HyprStatsButton" in src:
-    sys.exit(0)
 
 # 1. add imports right after the original cairo import
 imports_anchor = "import cairo\n"
@@ -67,49 +88,68 @@ extra_imports = (
 )
 src = src.replace(imports_anchor, extra_imports, 1)
 
-# 2. add the launcher function + button class right before StatusBarBase
+# 2. add the launcher/stopper functions + button class right before StatusBarBase
 class_anchor = "class StatusBarBase:"
 injected = '''HYPRSTATS_PATH = os.path.expanduser("~/.config/hyprstats/main.py")
+_hyprstats_proc = None
 
 
-def launch_hyprstats(*_args):
-    """Launch the HyprStats widget as a detached process."""
+def _start_hyprstats(*_args):
+    global _hyprstats_proc
     if not os.path.exists(HYPRSTATS_PATH):
         logger.warning(f"HyprStats not found at {HYPRSTATS_PATH}")
         return
+    if _hyprstats_proc is not None and _hyprstats_proc.poll() is None:
+        return
     try:
-        subprocess.Popen(["python3", HYPRSTATS_PATH], start_new_session=True)
+        _hyprstats_proc = subprocess.Popen(
+            ["python3", HYPRSTATS_PATH], start_new_session=True
+        )
     except Exception as e:
         logger.error(f"Failed to launch HyprStats: {e}")
 
 
+def _stop_hyprstats(*_args):
+    global _hyprstats_proc
+    if _hyprstats_proc is not None and _hyprstats_proc.poll() is None:
+        try:
+            _hyprstats_proc.terminate()
+        except Exception as e:
+            logger.error(f"Failed to stop HyprStats: {e}")
+    _hyprstats_proc = None
+
+
 class HyprStatsButton(Button):
-    """Status bar button that opens the HyprStats widget."""
+    """Status bar button that shows the HyprStats widget on hover."""
 
     def __init__(self, **kwargs):
         super().__init__(
             name="hyprstats-button",
-            label="\uf2db",
+            label="\\uf2db",
             tooltip_text="HyprStats",
-            on_clicked=launch_hyprstats,
             **kwargs,
         )
+        self.connect("enter-notify-event", lambda *_a: _start_hyprstats())
+        self.connect("leave-notify-event", lambda *_a: _stop_hyprstats())
 
 
 ''' + class_anchor
 src = src.replace(class_anchor, injected, 1)
 
-# 3. add the button into the end_children list, right before PowerButton()
-button_anchor = "                    PowerButton(),"
-src = src.replace(button_anchor, "                    HyprStatsButton(),\n" + button_anchor, 1)
+# 3. place the button right after Battery(), before combined_controls
+battery_anchor = "                    Battery(),"
+src = src.replace(
+    battery_anchor,
+    battery_anchor + "\n                    HyprStatsButton(),",
+    1,
+)
 
 with open(path, "w") as f:
     f.write(src)
 
 print("patched")
 PYEOF
-        echo -e "${GREEN}[✓] Mewline patched successfully.${NC}"
-    fi
+    echo -e "${GREEN}[✓] Mewline patched successfully.${NC}"
 else
     echo -e "${YELLOW}[!] Mewline status bar not found at $MEWLINE_TARGET.${NC}"
     echo -e "${YELLOW}    If you're not using Mewline, you can run HyprStats manually via:${NC}"
