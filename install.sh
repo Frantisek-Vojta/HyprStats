@@ -123,11 +123,11 @@ class HyprStatsButton(Button):
     """Status bar button that shows the HyprStats widget on hover."""
 
     def __init__(self, **kwargs):
-        super().__init__(
-            name="hyprstats-button",
-            label="\\uf2db",
-            tooltip_text="HyprStats",
-            **kwargs,
+        super().__init__(                       # *********************************************************************************
+            name="hyprstats-button",            #                                                                                 *
+            label="\\ued2f",                    # CHANGE YOUR ICON HERE https://www.nerdfonts.com/cheat-sheet - COPY THE UTF CODE *
+            tooltip_text="HyprStats",           #                                                                                 *
+            **kwargs,                           # *********************************************************************************
         )
         self.connect("enter-notify-event", lambda *_a: _start_hyprstats())
         self.connect("leave-notify-event", lambda *_a: _stop_hyprstats())
