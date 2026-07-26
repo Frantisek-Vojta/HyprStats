@@ -28,11 +28,11 @@ Custom Linux desktop system monitor widget for Hyprland on Arch Linux.
 
 ## Status
 
-This project is in early development.
+This project is in development. 
 
 <div align="center">
 
-![50%](https://progress-bar.xyz/43)
+![72%](https://progress-bar.xyz/72)
 
 </div>
 
