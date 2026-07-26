@@ -67,14 +67,14 @@ pip install -r requirements.txt
 
 ### Automatic install (`install.sh`)
 
-The repo includes `install.sh`, which copies the widget to `~/.config/hyprstats`, installs Python dependencies, and — **if [Mewline](https://github.com/meowrch/mewline) by meowrch is detected** — adds a hover button for it directly into Mewline's status bar.
+The repo includes `install.sh`, which copies the widget to `~/.config/hyprstats`, installs Python dependencies, and - **if [Mewline](https://github.com/meowrch/mewline) by meowrch is detected** - adds a hover button for it directly into Mewline's status bar.
 
 ```bash
 chmod +x install.sh
 ./install.sh
 ```
 
-> ⚠️ **Mewline integration only works with [meowrch/mewline](https://github.com/meowrch/mewline).** The script patches Mewline's own `status_bar.py` in place, so it depends on Mewline's internal file structure — it will not work with other status bars (Waybar, HyDePanel, eww, etc.). If Mewline isn't detected, `install.sh` still installs HyprStats standalone; you can then launch it manually (see [Usage](#usage)).
+> ⚠️ **Mewline integration only works with [meowrch/mewline](https://github.com/meowrch/mewline).** The script patches Mewline's own `status_bar.py` in place, so it depends on Mewline's internal file structure - it will not work with other status bars (Waybar, HyDePanel, eww, etc.). If Mewline isn't detected, `install.sh` still installs HyprStats standalone; you can then launch it manually (see [Usage](#usage)).
 
 To undo the Mewline integration and restore the original, unpatched `status_bar.py`:
 
