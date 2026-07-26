@@ -3,13 +3,13 @@ window {
 }
 
 #hyprstats-container {
-    background: linear-gradient(135deg, rgba(60, 30, 90, 0.45), rgba(30, 15, 45, 0.35));
-    border: 1px solid rgba(200, 160, 255, 0.35);
+    background: linear-gradient(135deg, $background_start, $background_end);
+    border: 1px solid $border;
     border-radius: 24px;
     font-family: "JetBrains Mono", "Fira Code", monospace;
-    font-size: 18px;
+    font-size: ${font_size}px;
     color: #d4bfff;
-    min-width: 460px;
+    min-width: ${min_width}px;
     padding: 28px 32px;
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4),
                 inset 0 1px 0 rgba(255, 255, 255, 0.1);
@@ -20,8 +20,8 @@ label {
     transition: color 0.3s ease, opacity 0.3s ease;
 }
 
-#ram { color: #a78bfa; }
-#cpu { color: #c084fc; }
-#gpu { color: #d8b4fe; }
-#disk { color: #e2ccff; }
-#network { color: #c084fc; }
+#ram { color: $ram; }
+#cpu { color: $cpu; }
+#gpu { color: $gpu; }
+#disk { color: $disk; }
+#network { color: $network; }

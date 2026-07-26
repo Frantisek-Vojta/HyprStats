@@ -59,14 +59,11 @@ fi
 if [ -f "$MEWLINE_TARGET" ]; then
     echo -e "${BLUE}--> Mewline detected at $MEWLINE_TARGET.${NC}"
 
-    # Keep a pristine backup of the original, untouched file
     if [ ! -f "${MEWLINE_TARGET}.bak" ]; then
         echo -e "${BLUE}--> Creating backup of original status_bar.py...${NC}"
         sudo cp "$MEWLINE_TARGET" "${MEWLINE_TARGET}.bak"
     fi
 
-    # Always re-patch from the pristine backup, so re-running this script
-    # after updating HyprStats applies the latest button behavior/position.
     echo -e "${BLUE}--> Restoring pristine status_bar.py before patching...${NC}"
     sudo cp "${MEWLINE_TARGET}.bak" "$MEWLINE_TARGET"
 
@@ -82,6 +79,7 @@ with open(path, "r") as f:
 imports_anchor = "import cairo\n"
 extra_imports = (
     "import os\n"
+    "import sys\n"
     "import subprocess\n"
     "import cairo\n"
     "from fabric.widgets.button import Button\n"
@@ -90,8 +88,22 @@ src = src.replace(imports_anchor, extra_imports, 1)
 
 # 2. add the launcher/stopper functions + button class right before StatusBarBase
 class_anchor = "class StatusBarBase:"
-injected = '''HYPRSTATS_PATH = os.path.expanduser("~/.config/hyprstats/main.py")
+injected = '''HYPRSTATS_DIR = os.path.expanduser("~/.config/hyprstats")
+HYPRSTATS_PATH = os.path.join(HYPRSTATS_DIR, "main.py")
 _hyprstats_proc = None
+
+
+def _get_hyprstats_icon():
+    """Read the mewline button icon from HyprStats' own config.json, live."""
+    default_icon = "\\ued2f"
+    try:
+        sys.path.insert(0, HYPRSTATS_DIR)
+        from config import load_config
+
+        cfg = load_config()
+        return cfg.get("mewline", {}).get("icon", default_icon)
+    except Exception:
+        return default_icon
 
 
 def _start_hyprstats(*_args):
@@ -123,11 +135,11 @@ class HyprStatsButton(Button):
     """Status bar button that shows the HyprStats widget on hover."""
 
     def __init__(self, **kwargs):
-        super().__init__(                       # *********************************************************************************
-            name="hyprstats-button",            #                                                                                 *
-            label="\\ued2f",                    # CHANGE YOUR ICON HERE https://www.nerdfonts.com/cheat-sheet - COPY THE UTF CODE *
-            tooltip_text="HyprStats",           #                                                                                 *
-            **kwargs,                           # *********************************************************************************
+        super().__init__(
+            name="hyprstats-button",
+            label=_get_hyprstats_icon(),
+            tooltip_text="HyprStats",
+            **kwargs,
         )
         self.connect("enter-notify-event", lambda *_a: _start_hyprstats())
         self.connect("leave-notify-event", lambda *_a: _stop_hyprstats())

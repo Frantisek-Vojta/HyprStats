@@ -3,6 +3,7 @@ import os
 import subprocess
 import time
 from collections import deque
+from string import Template
 import gi
 
 gi.require_version("Gtk", "3.0")
@@ -10,6 +11,8 @@ gi.require_version("GtkLayerShell", "0.1")
 
 from gi.repository import GdkPixbuf, Gio, GLib, Gtk, GtkLayerShell
 import psutil
+
+from config import load_config
 
 ICONS = {
     "ram": '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640"><path fill="#a78bfa" d="M128 128C92.7 128 64 156.7 64 192L64 199.4C64 206.2 68.4 212 74.1 215.7C87.3 224.3 96 239.1 96 256C96 272.9 87.3 287.7 74.1 296.3C68.4 300 64 305.8 64 312.6L64 368L576 368L576 312.6C576 305.8 571.6 300 565.9 296.3C552.7 287.7 544 272.9 544 256C544 239.1 552.7 224.3 565.9 215.7C571.6 212 576 206.2 576 199.4L576 192C576 156.7 547.3 128 512 128L128 128zM576 480L576 416L64 416L64 480C64 497.7 78.3 512 96 512L160 512L160 488C160 474.7 170.7 464 184 464C197.3 464 208 474.7 208 488L208 512L296 512L296 488C296 474.7 306.7 464 320 464C333.3 464 344 474.7 344 488L344 512L432 512L432 488C432 474.7 442.7 464 456 464C469.3 464 480 474.7 480 488L480 512L544 512C561.7 512 576 497.7 576 480zM224 224L224 288C224 305.7 209.7 320 192 320C174.3 320 160 305.7 160 288L160 224C160 206.3 174.3 192 192 192C209.7 192 224 206.3 224 224zM352 224L352 288C352 305.7 337.7 320 320 320C302.3 320 288 305.7 288 288L288 224C288 206.3 302.3 192 320 192C337.7 192 352 206.3 352 224zM480 224L480 288C480 305.7 465.7 320 448 320C430.3 320 416 305.7 416 288L416 224C416 206.3 430.3 192 448 192C465.7 192 480 206.3 480 224z"/></svg>',
@@ -19,16 +22,33 @@ ICONS = {
     "network": '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#c084fc" viewBox="0 0 16 16"><path d="M0 11.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1-.5-.5zm4-3a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 .5.5v5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1-.5-.5zm4-3a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1-.5-.5zm4-3a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 .5.5v11a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1-.5-.5z"/></svg>',
 }
 
-
-GRAPH_COLORS = {
-    "ram": (0.655, 0.545, 0.980),
-    "cpu": (0.753, 0.518, 0.988),
-    "gpu": (0.847, 0.706, 0.996),
-    "disk": (0.886, 0.800, 1.000),
-    "network": (0.753, 0.518, 0.988),
+TITLES = {
+    "ram": "RAM",
+    "cpu": "CPU",
+    "gpu": "GPU",
+    "disk": "DISK",
+    "network": "NET",
 }
 
-GRAPH_HISTORY_LEN = 30
+EDGE_MAP = {
+    "top": GtkLayerShell.Edge.TOP,
+    "bottom": GtkLayerShell.Edge.BOTTOM,
+    "left": GtkLayerShell.Edge.LEFT,
+    "right": GtkLayerShell.Edge.RIGHT,
+}
+
+
+def _hex_to_rgb(hex_color):
+    hex_color = (hex_color or "").lstrip("#")
+    if len(hex_color) != 6:
+        return (0.75, 0.52, 0.99)
+    try:
+        r = int(hex_color[0:2], 16) / 255
+        g = int(hex_color[2:4], 16) / 255
+        b = int(hex_color[4:6], 16) / 255
+        return (r, g, b)
+    except ValueError:
+        return (0.75, 0.52, 0.99)
 
 
 def _load_icon(name):
@@ -91,16 +111,23 @@ class HyprStatsWindow(Gtk.Window):
     def __init__(self):
         super().__init__(title="HyprStats")
 
+        self.config = load_config()
+
         GtkLayerShell.init_for_window(self)
         GtkLayerShell.set_namespace(self, "hyprstats")
         GtkLayerShell.set_layer(self, GtkLayerShell.Layer.TOP)
         GtkLayerShell.set_exclusive_zone(self, -1)
 
-        GtkLayerShell.set_anchor(self, GtkLayerShell.Edge.TOP, True)
-        GtkLayerShell.set_anchor(self, GtkLayerShell.Edge.RIGHT, True)
+        position = self.config["position"]
+        for edge_name in position.get("anchor", ["top", "right"]):
+            edge = EDGE_MAP.get(edge_name)
+            if edge is not None:
+                GtkLayerShell.set_anchor(self, edge, True)
 
-        GtkLayerShell.set_margin(self, GtkLayerShell.Edge.TOP, 50)
-        GtkLayerShell.set_margin(self, GtkLayerShell.Edge.RIGHT, 12)
+        for edge_name, edge in EDGE_MAP.items():
+            margin_key = f"margin_{edge_name}"
+            if margin_key in position:
+                GtkLayerShell.set_margin(self, edge, position[margin_key])
 
         self.connect("focus-out-event", lambda w, e: Gtk.main_quit())
 
@@ -113,14 +140,7 @@ class HyprStatsWindow(Gtk.Window):
         if visual:
             self.set_visual(visual)
 
-        css_provider = Gtk.CssProvider()
-        css_path = os.path.join(os.path.dirname(__file__), "style.css")
-        if os.path.exists(css_path):
-            css_provider.load_from_path(css_path)
-
-        Gtk.StyleContext.add_provider_for_screen(
-            screen, css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
-        )
+        self._apply_css(screen)
 
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         vbox.set_name("hyprstats-container")
@@ -135,13 +155,21 @@ class HyprStatsWindow(Gtk.Window):
         self.grid.set_row_spacing(18)
         vbox.pack_start(self.grid, False, False, 0)
 
+        colors = self.config["colors"]
+        self.graph_colors = {
+            key: _hex_to_rgb(colors.get(key)) for key in TITLES
+        }
+
+        graph_cfg = self.config["graph"]
+        self.graph_width = graph_cfg.get("width", 60)
+        self.graph_height = graph_cfg.get("height", 22)
+        self.graph_history_len = graph_cfg.get("history_length", 30)
+
         self.cells = {}
         rows = [
-            ("ram", "RAM"),
-            ("cpu", "CPU"),
-            ("gpu", "GPU"),
-            ("disk", "DISK"),
-            ("network", "NET"),
+            (key, TITLES.get(key, key.upper()))
+            for key in self.config.get("rows", list(TITLES))
+            if key in ICONS
         ]
 
         for i, (key, title) in enumerate(rows):
@@ -170,7 +198,7 @@ class HyprStatsWindow(Gtk.Window):
             self.grid.attach(lbl_temp, 4, i, 1, 1)
 
             graph = Gtk.DrawingArea()
-            graph.set_size_request(60, 22)
+            graph.set_size_request(self.graph_width, self.graph_height)
             graph.set_valign(Gtk.Align.CENTER)
             graph.connect("draw", self._on_draw_graph, key)
             self.grid.attach(graph, 5, i, 1, 1)
@@ -182,13 +210,57 @@ class HyprStatsWindow(Gtk.Window):
                 "graph": graph,
             }
 
-        self.history = {key: deque([0] * GRAPH_HISTORY_LEN, maxlen=GRAPH_HISTORY_LEN) for key, _ in rows}
+        self.history = {
+            key: deque([0] * self.graph_history_len, maxlen=self.graph_history_len)
+            for key in self.cells
+        }
 
         self.prev_net = psutil.net_io_counters()
         self.prev_net_time = time.time()
 
         self.update_stats()
         GLib.timeout_add_seconds(1, self.update_stats)
+
+    def _apply_css(self, screen):
+        css_provider = Gtk.CssProvider()
+        template_path = os.path.join(
+            os.path.dirname(__file__), "style.css.template"
+        )
+        fallback_path = os.path.join(os.path.dirname(__file__), "style.css")
+
+        colors = self.config["colors"]
+        substitutions = {
+            "ram": colors.get("ram", "#a78bfa"),
+            "cpu": colors.get("cpu", "#c084fc"),
+            "gpu": colors.get("gpu", "#d8b4fe"),
+            "disk": colors.get("disk", "#e2ccff"),
+            "network": colors.get("network", "#c084fc"),
+            "background_start": colors.get(
+                "background_start", "rgba(60, 30, 90, 0.45)"
+            ),
+            "background_end": colors.get(
+                "background_end", "rgba(30, 15, 45, 0.35)"
+            ),
+            "border": colors.get("border", "rgba(200, 160, 255, 0.35)"),
+            "min_width": self.config["window"].get("min_width", 460),
+            "font_size": self.config["window"].get("font_size", 18),
+        }
+
+        try:
+            if os.path.exists(template_path):
+                with open(template_path) as f:
+                    template_text = f.read()
+                final_css = Template(template_text).safe_substitute(substitutions)
+                css_provider.load_from_data(final_css.encode())
+            elif os.path.exists(fallback_path):
+                css_provider.load_from_path(fallback_path)
+        except Exception:
+            if os.path.exists(fallback_path):
+                css_provider.load_from_path(fallback_path)
+
+        Gtk.StyleContext.add_provider_for_screen(
+            screen, css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+        )
 
     def _on_draw_graph(self, widget, cr, key):
         values = list(self.history[key])
@@ -200,9 +272,8 @@ class HyprStatsWindow(Gtk.Window):
         max_val = max(max(values), 1)
         n = len(values)
         padding = 2
-        r, g, b = GRAPH_COLORS.get(key, (0.75, 0.52, 0.99))
+        r, g, b = self.graph_colors.get(key, (0.75, 0.52, 0.99))
 
-        # filled area under the line
         cr.move_to(padding, height - padding)
         for i, v in enumerate(values):
             x = padding + (width - 2 * padding) * i / max(n - 1, 1)
@@ -213,7 +284,6 @@ class HyprStatsWindow(Gtk.Window):
         cr.set_source_rgba(r, g, b, 0.18)
         cr.fill()
 
-        # the line itself
         cr.set_line_width(1.6)
         cr.set_source_rgba(r, g, b, 0.9)
         for i, v in enumerate(values):
@@ -228,71 +298,80 @@ class HyprStatsWindow(Gtk.Window):
         return False
 
     def update_stats(self):
-        mem = psutil.virtual_memory()
-        used_gb = mem.used / 1024**3
-        total_gb = mem.total / 1024**3
-        self.cells["ram"]["usage"].set_text(f"{mem.percent:.1f}%")
-        self.cells["ram"]["detail"].set_text(f"{used_gb:.1f}/{total_gb:.1f}GB")
-        self.cells["ram"]["temp"].set_text("")
-        self.history["ram"].append(mem.percent)
-        self.cells["ram"]["graph"].queue_draw()
+        if "ram" in self.cells:
+            mem = psutil.virtual_memory()
+            used_gb = mem.used / 1024**3
+            total_gb = mem.total / 1024**3
+            self.cells["ram"]["usage"].set_text(f"{mem.percent:.1f}%")
+            self.cells["ram"]["detail"].set_text(f"{used_gb:.1f}/{total_gb:.1f}GB")
+            self.cells["ram"]["temp"].set_text("")
+            self.history["ram"].append(mem.percent)
+            self.cells["ram"]["graph"].queue_draw()
 
-        cpu_percent = psutil.cpu_percent()
-        cpu_freq = psutil.cpu_freq()
-        freq_text = f"{cpu_freq.current:.0f}MHz" if cpu_freq else "N/A"
-        self.cells["cpu"]["usage"].set_text(f"{cpu_percent:.1f}%")
-        self.cells["cpu"]["detail"].set_text(freq_text)
-        self.cells["cpu"]["temp"].set_text(get_cpu_temperature())
-        self.history["cpu"].append(cpu_percent)
-        self.cells["cpu"]["graph"].queue_draw()
+        if "cpu" in self.cells:
+            cpu_percent = psutil.cpu_percent()
+            cpu_freq = psutil.cpu_freq()
+            freq_text = f"{cpu_freq.current:.0f}MHz" if cpu_freq else "N/A"
+            self.cells["cpu"]["usage"].set_text(f"{cpu_percent:.1f}%")
+            self.cells["cpu"]["detail"].set_text(freq_text)
+            self.cells["cpu"]["temp"].set_text(get_cpu_temperature())
+            self.history["cpu"].append(cpu_percent)
+            self.cells["cpu"]["graph"].queue_draw()
 
-        gpu_usage, gpu_vram = self.get_gpu_info()
-        self.cells["gpu"]["usage"].set_text(gpu_usage)
-        self.cells["gpu"]["detail"].set_text(gpu_vram)
-        self.cells["gpu"]["temp"].set_text(get_gpu_temperature())
-        try:
-            gpu_percent_val = float(gpu_usage.rstrip("%"))
-        except ValueError:
-            gpu_percent_val = 0
-        self.history["gpu"].append(gpu_percent_val)
-        self.cells["gpu"]["graph"].queue_draw()
+        if "gpu" in self.cells:
+            gpu_usage, gpu_vram = self.get_gpu_info()
+            self.cells["gpu"]["usage"].set_text(gpu_usage)
+            self.cells["gpu"]["detail"].set_text(gpu_vram)
+            self.cells["gpu"]["temp"].set_text(get_gpu_temperature())
+            try:
+                gpu_percent_val = float(gpu_usage.rstrip("%"))
+            except ValueError:
+                gpu_percent_val = 0
+            self.history["gpu"].append(gpu_percent_val)
+            self.cells["gpu"]["graph"].queue_draw()
 
-        disk = psutil.disk_usage("/")
-        disk_used = disk.used / 1024**3
-        disk_total = disk.total / 1024**3
-        self.cells["disk"]["usage"].set_text(f"{disk.percent:.1f}%")
-        self.cells["disk"]["detail"].set_text(f"{disk_used:.0f}/{disk_total:.0f}GB")
-        self.cells["disk"]["temp"].set_text("")
-        self.history["disk"].append(disk.percent)
-        self.cells["disk"]["graph"].queue_draw()
+        if "disk" in self.cells:
+            disk = psutil.disk_usage("/")
+            disk_used = disk.used / 1024**3
+            disk_total = disk.total / 1024**3
+            self.cells["disk"]["usage"].set_text(f"{disk.percent:.1f}%")
+            self.cells["disk"]["detail"].set_text(
+                f"{disk_used:.0f}/{disk_total:.0f}GB"
+            )
+            self.cells["disk"]["temp"].set_text("")
+            self.history["disk"].append(disk.percent)
+            self.cells["disk"]["graph"].queue_draw()
 
-        curr_net = psutil.net_io_counters()
-        curr_time = time.time()
-        elapsed = curr_time - self.prev_net_time
-        if elapsed > 0:
-            down_speed = (curr_net.bytes_recv - self.prev_net.bytes_recv) / elapsed
-            up_speed = (curr_net.bytes_sent - self.prev_net.bytes_sent) / elapsed
-        else:
-            down_speed = 0
-            up_speed = 0
-        self.prev_net = curr_net
-        self.prev_net_time = curr_time
-
-        def fmt_speed(bps):
-            if bps >= 1024 * 1024:
-                return f"{bps / (1024*1024):.1f}M"
-            elif bps >= 1024:
-                return f"{bps / 1024:.0f}K"
+        if "network" in self.cells:
+            curr_net = psutil.net_io_counters()
+            curr_time = time.time()
+            elapsed = curr_time - self.prev_net_time
+            if elapsed > 0:
+                down_speed = (
+                    curr_net.bytes_recv - self.prev_net.bytes_recv
+                ) / elapsed
+                up_speed = (curr_net.bytes_sent - self.prev_net.bytes_sent) / elapsed
             else:
-                return f"{bps:.0f}B"
+                down_speed = 0
+                up_speed = 0
+            self.prev_net = curr_net
+            self.prev_net_time = curr_time
 
-        self.cells["network"]["usage"].set_text("")
-        self.cells["network"]["detail"].set_text(
-            f"↓{fmt_speed(down_speed)} ↑{fmt_speed(up_speed)}"
-        )
-        self.cells["network"]["temp"].set_text("")
-        self.history["network"].append(down_speed)
-        self.cells["network"]["graph"].queue_draw()
+            def fmt_speed(bps):
+                if bps >= 1024 * 1024:
+                    return f"{bps / (1024*1024):.1f}M"
+                elif bps >= 1024:
+                    return f"{bps / 1024:.0f}K"
+                else:
+                    return f"{bps:.0f}B"
+
+            self.cells["network"]["usage"].set_text("")
+            self.cells["network"]["detail"].set_text(
+                f"↓{fmt_speed(down_speed)} ↑{fmt_speed(up_speed)}"
+            )
+            self.cells["network"]["temp"].set_text("")
+            self.history["network"].append(down_speed)
+            self.cells["network"]["graph"].queue_draw()
 
         return True
 
