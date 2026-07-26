@@ -2,6 +2,7 @@ import glob
 import os
 import subprocess
 import time
+from collections import deque
 import gi
 
 gi.require_version("Gtk", "3.0")
@@ -17,6 +18,17 @@ ICONS = {
     "disk": '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640"><path fill="#e2ccff" d="M160 144C151.2 144 144 151.2 144 160L144 322C149.1 320.7 154.5 320 160 320L480 320C485.5 320 490.9 320.7 496 322L496 160C496 151.2 488.8 144 480 144L160 144zM144 384L144 480C144 488.8 151.2 496 160 496L480 496C488.8 496 496 488.8 496 480L496 384C496 375.2 488.8 368 480 368L160 368C151.2 368 144 375.2 144 384zM96 384L96 160C96 124.7 124.7 96 160 96L480 96C515.3 96 544 124.7 544 160L544 480C544 515.3 515.3 544 480 544L160 544C124.7 544 96 515.3 96 480L96 384zM312 432C312 418.7 322.7 408 336 408C349.3 408 360 418.7 360 432C360 445.3 349.3 456 336 456C322.7 456 312 445.3 312 432zM432 408C445.3 408 456 418.7 456 432C456 445.3 445.3 456 432 456C418.7 456 408 445.3 408 432C408 418.7 418.7 408 432 408z"/></svg>',
     "network": '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#c084fc" viewBox="0 0 16 16"><path d="M0 11.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1-.5-.5zm4-3a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 .5.5v5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1-.5-.5zm4-3a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1-.5-.5zm4-3a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 .5.5v11a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1-.5-.5z"/></svg>',
 }
+
+
+GRAPH_COLORS = {
+    "ram": (0.655, 0.545, 0.980),
+    "cpu": (0.753, 0.518, 0.988),
+    "gpu": (0.847, 0.706, 0.996),
+    "disk": (0.886, 0.800, 1.000),
+    "network": (0.753, 0.518, 0.988),
+}
+
+GRAPH_HISTORY_LEN = 30
 
 
 def _load_icon(name):
@@ -157,17 +169,63 @@ class HyprStatsWindow(Gtk.Window):
             lbl_temp.set_halign(Gtk.Align.START)
             self.grid.attach(lbl_temp, 4, i, 1, 1)
 
+            graph = Gtk.DrawingArea()
+            graph.set_size_request(60, 22)
+            graph.set_valign(Gtk.Align.CENTER)
+            graph.connect("draw", self._on_draw_graph, key)
+            self.grid.attach(graph, 5, i, 1, 1)
+
             self.cells[key] = {
                 "usage": lbl_usage,
                 "detail": lbl_detail,
                 "temp": lbl_temp,
+                "graph": graph,
             }
+
+        self.history = {key: deque([0] * GRAPH_HISTORY_LEN, maxlen=GRAPH_HISTORY_LEN) for key, _ in rows}
 
         self.prev_net = psutil.net_io_counters()
         self.prev_net_time = time.time()
 
         self.update_stats()
         GLib.timeout_add_seconds(1, self.update_stats)
+
+    def _on_draw_graph(self, widget, cr, key):
+        values = list(self.history[key])
+        width = widget.get_allocated_width()
+        height = widget.get_allocated_height()
+        if not values or width <= 0 or height <= 0:
+            return False
+
+        max_val = max(max(values), 1)
+        n = len(values)
+        padding = 2
+        r, g, b = GRAPH_COLORS.get(key, (0.75, 0.52, 0.99))
+
+        # filled area under the line
+        cr.move_to(padding, height - padding)
+        for i, v in enumerate(values):
+            x = padding + (width - 2 * padding) * i / max(n - 1, 1)
+            y = height - padding - (v / max_val) * (height - 2 * padding)
+            cr.line_to(x, y)
+        cr.line_to(width - padding, height - padding)
+        cr.close_path()
+        cr.set_source_rgba(r, g, b, 0.18)
+        cr.fill()
+
+        # the line itself
+        cr.set_line_width(1.6)
+        cr.set_source_rgba(r, g, b, 0.9)
+        for i, v in enumerate(values):
+            x = padding + (width - 2 * padding) * i / max(n - 1, 1)
+            y = height - padding - (v / max_val) * (height - 2 * padding)
+            if i == 0:
+                cr.move_to(x, y)
+            else:
+                cr.line_to(x, y)
+        cr.stroke()
+
+        return False
 
     def update_stats(self):
         mem = psutil.virtual_memory()
@@ -176,6 +234,8 @@ class HyprStatsWindow(Gtk.Window):
         self.cells["ram"]["usage"].set_text(f"{mem.percent:.1f}%")
         self.cells["ram"]["detail"].set_text(f"{used_gb:.1f}/{total_gb:.1f}GB")
         self.cells["ram"]["temp"].set_text("")
+        self.history["ram"].append(mem.percent)
+        self.cells["ram"]["graph"].queue_draw()
 
         cpu_percent = psutil.cpu_percent()
         cpu_freq = psutil.cpu_freq()
@@ -183,11 +243,19 @@ class HyprStatsWindow(Gtk.Window):
         self.cells["cpu"]["usage"].set_text(f"{cpu_percent:.1f}%")
         self.cells["cpu"]["detail"].set_text(freq_text)
         self.cells["cpu"]["temp"].set_text(get_cpu_temperature())
+        self.history["cpu"].append(cpu_percent)
+        self.cells["cpu"]["graph"].queue_draw()
 
         gpu_usage, gpu_vram = self.get_gpu_info()
         self.cells["gpu"]["usage"].set_text(gpu_usage)
         self.cells["gpu"]["detail"].set_text(gpu_vram)
         self.cells["gpu"]["temp"].set_text(get_gpu_temperature())
+        try:
+            gpu_percent_val = float(gpu_usage.rstrip("%"))
+        except ValueError:
+            gpu_percent_val = 0
+        self.history["gpu"].append(gpu_percent_val)
+        self.cells["gpu"]["graph"].queue_draw()
 
         disk = psutil.disk_usage("/")
         disk_used = disk.used / 1024**3
@@ -195,6 +263,8 @@ class HyprStatsWindow(Gtk.Window):
         self.cells["disk"]["usage"].set_text(f"{disk.percent:.1f}%")
         self.cells["disk"]["detail"].set_text(f"{disk_used:.0f}/{disk_total:.0f}GB")
         self.cells["disk"]["temp"].set_text("")
+        self.history["disk"].append(disk.percent)
+        self.cells["disk"]["graph"].queue_draw()
 
         curr_net = psutil.net_io_counters()
         curr_time = time.time()
@@ -221,6 +291,8 @@ class HyprStatsWindow(Gtk.Window):
             f"↓{fmt_speed(down_speed)} ↑{fmt_speed(up_speed)}"
         )
         self.cells["network"]["temp"].set_text("")
+        self.history["network"].append(down_speed)
+        self.cells["network"]["graph"].queue_draw()
 
         return True
 
