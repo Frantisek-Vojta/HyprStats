@@ -1,4 +1,4 @@
-div align="center">
+<div align="center">
 
 # HyprStats ✨
 
@@ -11,7 +11,7 @@ Custom Linux desktop system monitor widget for Hyprland on Arch Linux.
 ![Wayland](https://img.shields.io/badge/Wayland-FFBC00?style=flat&logo=wayland&logoColor=black)
 ![Meowrch](https://img.shields.io/badge/Meowrch-FCA2A2?style=flat&logo=cat&logoColor=black)
 
-![HyprStats demo](assets/emo.gif)
+![HyprStats demo](assets/demo.gif)
 
 </div>
 
@@ -74,7 +74,7 @@ chmod +x install.sh
 ./install.sh
 ```
 
-> ⚠️ **Mewline integration only works with [meowrch/mewline](https://github.com/meowrch/mewline).** The script patches Mewline's own `status_bar.py` in place, so it depends on Mewline's internal file structure — it will not work with other status bars (Waybar, HyDePanel, eww, etc.). If Mewline isn't detected, `install.sh` still installs HyprStats standalone; you can then launch it manually (see [Usage](#sage)).
+> ⚠️ **Mewline integration only works with [meowrch/mewline](https://github.com/meowrch/mewline).** The script patches Mewline's own `status_bar.py` in place, so it depends on Mewline's internal file structure — it will not work with other status bars (Waybar, HyDePanel, eww, etc.). If Mewline isn't detected, `install.sh` still installs HyprStats standalone; you can then launch it manually (see [Usage](#usage)).
 
 To undo the Mewline integration and restore the original, unpatched `status_bar.py`:
 
@@ -121,7 +121,7 @@ Example:
 ## Screenshots
 
 #### old version:
-![HyprStats screenshot](assets/mage.png)
+![HyprStats screenshot](assets/image.png)
 
 *more screenshots coming soon.*
 
@@ -132,4 +132,3 @@ Pull requests, bug reports, and feature requests are welcome. Feel free to open 
 ## License
 
 This project is licensed under the MIT License.
-}
