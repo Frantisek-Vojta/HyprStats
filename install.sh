@@ -7,14 +7,14 @@ GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
-NC='\033[0m' # No Color
+NC='\033[0m' # No Color 
 
 # Paths
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 INSTALL_DIR="$HOME/.config/hyprstats"
 MEWLINE_TARGET="/opt/mewline/src/mewline/widgets/status_bar.py"
 
-# --restore: put back the original, unpatched Mewline status bar and exit
+# --restore: put back the original, unpatched Mewline status bar and exit 
 if [ "$1" = "--restore" ] || [ "$1" = "-r" ]; then
     echo -e "${BLUE}==> Restoring original Mewline status bar...${NC}"
     if [ -f "${MEWLINE_TARGET}.bak" ]; then
@@ -37,14 +37,14 @@ fi
 
 echo -e "${BLUE}==> Installing HyprStats...${NC}"
 
-# 1. Deploy project files to ~/.config/hyprstats
+# 1. Deploy project files to ~/.config/hyprstats 
 echo -e "${BLUE}--> Copying project files to $INSTALL_DIR...${NC}"
 mkdir -p "$INSTALL_DIR"
 cp -r "$REPO_DIR/"* "$INSTALL_DIR/"
 echo -e "${GREEN}[✓] Files successfully deployed to $INSTALL_DIR${NC}"
 
 # 2. Install Python dependencies
-if [ -f "$REPO_DIR/requirements.txt" ]; then
+if [ -f "$REPO_DIR/requirements.txt" ]; then 
     echo -e "${BLUE}--> Installing Python dependencies...${NC}"
     if command -v pip &> /dev/null; then
         pip install -r "$REPO_DIR/requirements.txt" --break-system-packages 2>/dev/null \

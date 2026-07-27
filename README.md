@@ -27,7 +27,7 @@ Custom Linux desktop system monitor widget for Hyprland on Arch Linux.
 - Optional one-click integration into the [Mewline](https://github.com/meowrch/mewline) status bar (hover to open, move away to close)
 
 ## Status
-
+ 
 This project is in development. 
 
 <div align="center">

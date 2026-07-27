@@ -75,5 +75,5 @@ def load_config():
             user_config = json.load(f)
         return _deep_merge(DEFAULT_CONFIG, user_config)
     except Exception:
-        # broken config.json shouldn't crash the widget — fall back to defaults
+        # broken config.json shouldn't crash the widget - fall back to defaults
         return dict(DEFAULT_CONFIG)
