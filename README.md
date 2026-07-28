@@ -46,13 +46,13 @@ This project is in early development.
 
 ## Why
 
-Checking system stats on Hyprland usually means opening a terminal and running `htop`, `nvidia-smi`, or `df -h` just to glance at RAM, temps, or disk space — a small but constant interruption. HyprStats removes that friction by putting live stats one hover away, right in your status bar.
+Checking system stats on Hyprland usually means opening a terminal and running `htop`, `nvidia-smi`, or `df -h` just to glance at RAM, temps, or disk space - a small but constant interruption. HyprStats removes that friction by putting live stats one hover away, right in your status bar.
 
 **3 main QoL improvements:**
 
-1. **No more terminal round-trips** — RAM, CPU, GPU, disk, and network stats (plus live temps and mini graphs) are visible instantly, without alt-tabbing to a terminal and typing a command.
-2. **Zero-click, hover-to-open access** — integrated directly into the [Mewline](https://github.com/meowrch/mewline) status bar: hover the icon to open, move away to close. No extra window to manage or close manually.
-3. **Fully configurable without touching code** — colors, position, which metrics show, graph size, and font size are all editable in a plain `config.json`, generated automatically on first run.
+1. **No more terminal round-trips** - RAM, CPU, GPU, disk, and network stats (plus live temps and mini graphs) are visible instantly, without alt-tabbing to a terminal and typing a command.
+2. **Zero-click, hover-to-open access** - integrated directly into the [Mewline](https://github.com/meowrch/mewline) status bar: hover the icon to open, move away to close. No extra window to manage or close manually.
+3. **Fully configurable without touching code** - colors, position, which metrics show, graph size, and font size are all editable in a plain `config.json`, generated automatically on first run.
 
 ## Installation
 
@@ -77,14 +77,14 @@ pip install -r requirements.txt
 
 ### Automatic install (`install.sh`)
 
-The repo includes `install.sh`, which copies the widget to `~/.config/hyprstats`, installs Python dependencies, and — **if [Mewline](https://github.com/meowrch/mewline) by meowrch is detected** — adds a hover button for it directly into Mewline's status bar.
+The repo includes `install.sh`, which copies the widget to `~/.config/hyprstats`, installs Python dependencies, and - **if [Mewline](https://github.com/meowrch/mewline) by meowrch is detected** - adds a hover button for it directly into Mewline's status bar.
 
 ```bash
 chmod +x install.sh
 ./install.sh
 ```
 
-> ⚠️ **Mewline integration only works with [meowrch/mewline](https://github.com/meowrch/mewline).** The script patches Mewline's own `status_bar.py` in place, so it depends on Mewline's internal file structure — it will not work with other status bars (Waybar, HyDePanel, eww, etc.). If Mewline isn't detected, `install.sh` still installs HyprStats standalone; you can then launch it manually (see [Usage](#usage)).
+> ⚠️ **Mewline integration only works with [meowrch/mewline](https://github.com/meowrch/mewline).** The script patches Mewline's own `status_bar.py` in place, so it depends on Mewline's internal file structure - it will not work with other status bars (Waybar, HyDePanel, eww, etc.). If Mewline isn't detected, `install.sh` still installs HyprStats standalone; you can then launch it manually (see [Usage](#usage)).
 
 To undo the Mewline integration and restore the original, unpatched `status_bar.py`:
 
@@ -100,20 +100,20 @@ Run the widget manually (either from the repo, or from the installed copy):
 python3 ~/.config/hyprstats/main.py
 ```
 
-If you're using the Mewline integration, just hover over the HyprStats icon in the status bar instead — no manual launch needed.
+If you're using the Mewline integration, just hover over the HyprStats icon in the status bar instead - no manual launch needed.
 
 ## Configuration
 
-On first launch, HyprStats automatically creates `~/.config/hyprstats/config.json` with sensible defaults. Edit that file (not anything in the cloned repo) and restart the widget — or Mewline, if integrated — to apply changes. No code editing required.
+On first launch, HyprStats automatically creates `~/.config/hyprstats/config.json` with sensible defaults. Edit that file (not anything in the cloned repo) and restart the widget - or Mewline, if integrated - to apply changes. No code editing required.
 
 You can customize:
 
-- **`position`** — which screen edges the widget anchors to (`top`/`bottom`/`left`/`right`) and the margin from each
-- **`rows`** — which metrics to show and in what order (remove one, e.g. `"gpu"`, to hide that row entirely)
-- **`colors`** — accent color per metric (affects both the text and its graph), plus background and border colors
-- **`graph`** — sparkline size and how many samples of history to keep
-- **`window`** — overall width and font size
-- **`mewline`** — the icon shown for the HyprStats hover button in the Mewline status bar (grab a code from the [Nerd Fonts cheat sheet](https://www.nerdfonts.com/cheat-sheet))
+- **`position`** - which screen edges the widget anchors to (`top`/`bottom`/`left`/`right`) and the margin from each
+- **`rows`** - which metrics to show and in what order (remove one, e.g. `"gpu"`, to hide that row entirely)
+- **`colors`** - accent color per metric (affects both the text and its graph), plus background and border colors
+- **`graph`** - sparkline size and how many samples of history to keep
+- **`window`** - overall width and font size
+- **`mewline`** - the icon shown for the HyprStats hover button in the Mewline status bar (grab a code from the [Nerd Fonts cheat sheet](https://www.nerdfonts.com/cheat-sheet))
 
 Example:
 
