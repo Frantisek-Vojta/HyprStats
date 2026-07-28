@@ -11,7 +11,7 @@ Custom Linux desktop system monitor widget for Hyprland on Arch Linux.
 ![Wayland](https://img.shields.io/badge/Wayland-FFBC00?style=flat&logo=wayland&logoColor=black)
 ![Meowrch](https://img.shields.io/badge/Meowrch-FCA2A2?style=flat&logo=cat&logoColor=black)
 
-![HyprStats demo](assets/demo.gif)
+![HyprStats demo](assets/emo.gif)
 
 </div>
 
@@ -27,12 +27,12 @@ Custom Linux desktop system monitor widget for Hyprland on Arch Linux.
 - Optional one-click integration into the [Mewline](https://github.com/meowrch/mewline) status bar (hover to open, move away to close)
 
 ## Status
- 
-This project is in development. 
+
+This project is in early development.
 
 <div align="center">
 
-![72%](https://progress-bar.xyz/72)
+![50%](https://progress-bar.xyz/43)
 
 </div>
 
@@ -43,6 +43,16 @@ This project is in development.
 - psutil
 - cairosvg
 - Nerd Font (for icons)
+
+## Why
+
+Checking system stats on Hyprland usually means opening a terminal and running `htop`, `nvidia-smi`, or `df -h` just to glance at RAM, temps, or disk space — a small but constant interruption. HyprStats removes that friction by putting live stats one hover away, right in your status bar.
+
+**3 main QoL improvements:**
+
+1. **No more terminal round-trips** — RAM, CPU, GPU, disk, and network stats (plus live temps and mini graphs) are visible instantly, without alt-tabbing to a terminal and typing a command.
+2. **Zero-click, hover-to-open access** — integrated directly into the [Mewline](https://github.com/meowrch/mewline) status bar: hover the icon to open, move away to close. No extra window to manage or close manually.
+3. **Fully configurable without touching code** — colors, position, which metrics show, graph size, and font size are all editable in a plain `config.json`, generated automatically on first run.
 
 ## Installation
 
@@ -74,7 +84,7 @@ chmod +x install.sh
 ./install.sh
 ```
 
-> ⚠️ **Mewline integration only works with [meowrch/mewline](https://github.com/meowrch/mewline).** The script patches Mewline's own `status_bar.py` in place, so it depends on Mewline's internal file structure — it will not work with other status bars (Waybar, HyDePanel, eww, etc.). If Mewline isn't detected, `install.sh` still installs HyprStats standalone; you can then launch it manually (see [Usage](#usage)).
+> ⚠️ **Mewline integration only works with [meowrch/mewline](https://github.com/meowrch/mewline).** The script patches Mewline's own `status_bar.py` in place, so it depends on Mewline's internal file structure — it will not work with other status bars (Waybar, HyDePanel, eww, etc.). If Mewline isn't detected, `install.sh` still installs HyprStats standalone; you can then launch it manually (see [Usage](#sage)).
 
 To undo the Mewline integration and restore the original, unpatched `status_bar.py`:
 
@@ -121,7 +131,7 @@ Example:
 ## Screenshots
 
 #### old version:
-![HyprStats screenshot](assets/image.png)
+![HyprStats screenshot](assets/mage.png)
 
 *more screenshots coming soon.*
 
@@ -132,3 +142,4 @@ Pull requests, bug reports, and feature requests are welcome. Feel free to open 
 ## License
 
 This project is licensed under the MIT License.
+}
