@@ -6,6 +6,9 @@ from collections import deque
 from string import Template
 import gi
 
+import cairo
+from gi.repository import GdkPixbuf, Gio, GLib, Gtk, GtkLayerShell
+
 gi.require_version("Gtk", "3.0")
 gi.require_version("GtkLayerShell", "0.1")
 
